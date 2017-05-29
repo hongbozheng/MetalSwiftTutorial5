@@ -50,7 +50,14 @@ class MetalTexture: NSObject {
     
     super.init()
   }
-  
+    
+    /**
+     First, you load the image from a file.
+     Next, you extract the pixel data from that image into raw bytes.
+     Then, you ask the MTLDevice to create an empty texture.
+     Finally, you copy the bytes data into that empty texture.
+     
+     */
   func loadTexture(device: MTLDevice, commandQ: MTLCommandQueue, flip: Bool){
     
     let image = (UIImage(contentsOfFile: path)?.cgImage)!

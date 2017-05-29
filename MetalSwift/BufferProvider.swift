@@ -8,6 +8,7 @@
 
 import Foundation
 import Metal
+import simd
 
 class BufferProvider:NSObject {
     let inflightBuffersCount :Int
@@ -27,13 +28,16 @@ class BufferProvider:NSObject {
         avaliableResourceSemaphore = DispatchSemaphore(value: inflightBuffersCount)
     }
     
-    func nextUniformsBuffer(projectionMatrix:Matrix4, modelViewMatrix:Matrix4, light:Light) -> MTLBuffer{
+    func nextUniformsBuffer(projectionMatrix:float4x4, modelViewMatrix:float4x4, light:Light) -> MTLBuffer{
         let buffer = uniformsBuffers[avaliableBufferIndex]
         let bufferPointer = buffer.contents()
         
-        memcpy(bufferPointer, modelViewMatrix.raw(), MemoryLayout<Float>.size * Matrix4.numberOfElements())
-        memcpy(bufferPointer + MemoryLayout<Float>.size * Matrix4.numberOfElements(), projectionMatrix.raw(), MemoryLayout<Float>.size * Matrix4.numberOfElements())
-        memcpy(bufferPointer + 2*MemoryLayout<Float>.size * Matrix4.numberOfElements(), light.raw(), Light.size())
+        var projectionMatrix = projectionMatrix
+        var modelViewMatrix = modelViewMatrix
+        
+        memcpy(bufferPointer, &modelViewMatrix, MemoryLayout<Float>.size * float4x4.numberOfElements())
+        memcpy(bufferPointer + MemoryLayout<Float>.size * float4x4.numberOfElements(), &projectionMatrix, MemoryLayout<Float>.size * float4x4.numberOfElements())
+        memcpy(bufferPointer + 2*MemoryLayout<Float>.size * float4x4.numberOfElements(), light.raw(), Light.size())
         avaliableBufferIndex += 1
         if avaliableBufferIndex == inflightBuffersCount {
             avaliableBufferIndex = 0

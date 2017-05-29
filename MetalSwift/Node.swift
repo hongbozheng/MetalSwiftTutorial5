@@ -9,6 +9,7 @@
 import Foundation
 import Metal
 import QuartzCore
+import simd
 
 class Node {
     let device: MTLDevice
@@ -46,13 +47,13 @@ class Node {
     vertexCount = vertices.count
     self.texture = texture
         
-        let sizeOfUniformBuffer = MemoryLayout<Float>.size * Matrix4.numberOfElements() * 2 + Light.size()
+        let sizeOfUniformBuffer = MemoryLayout<Float>.size * float4x4.numberOfElements() * 2 + Light.size()
         self.bufferProvider = BufferProvider(device: device, inflightBuffersCount: 3, sizeOfUniformsBufffer: sizeOfUniformBuffer)
         
     }
     
     
-    func render(commandQueue:MTLCommandQueue,pipelineState:MTLRenderPipelineState,drawable:CAMetalDrawable,parentModelViewMatrix:Matrix4,projectionMatrix:Matrix4,clearColor:MTLClearColor?){
+    func render(commandQueue:MTLCommandQueue,pipelineState:MTLRenderPipelineState,drawable:CAMetalDrawable,parentModelViewMatrix:float4x4,projectionMatrix:float4x4,clearColor:MTLClearColor?){
     
         //make the CPU wait in case bufferProvider.avaliableResourcesSemaphore has no free resources.
         _ = bufferProvider.avaliableResourceSemaphore.wait(timeout: DispatchTime.distantFuture)
@@ -80,16 +81,16 @@ class Node {
             renderEncoder.setFragmentSamplerState(samplerState, at: 0)
         }
         renderEncoder.setCullMode(MTLCullMode.front)
-        let nodeModelMatrix = self.modelMatrix()
+        var nodeModelMatrix = self.modelMatrix()
         nodeModelMatrix.multiplyLeft(parentModelViewMatrix)
         
 //        //Ask the device to create a buffer with shared CPU/GPU memory. This method is called 60 times per second, and you create a new buffer each time it’s called. This is a performance issue
-//        let uniformBuffer = device.makeBuffer(length: MemoryLayout<Float>.size * Matrix4.numberOfElements()*2, options: [])
+//        let uniformBuffer = device.makeBuffer(length: MemoryLayout<Float>.size * float4x4.numberOfElements()*2, options: [])
 //        //Get a raw pointer from buffer (similar to void * in Objective-C).
 //        let bufferPointer = uniformBuffer.contents()
 //        //Copy your matrix data into the buffer.
-//        memcpy(bufferPointer, nodeModelMatrix.raw(), MemoryLayout<Float>.size*Matrix4.numberOfElements())
-//        memcpy(bufferPointer + MemoryLayout<Float>.size * Matrix4.numberOfElements(), projectionMatrix.raw(),  MemoryLayout<Float>.size * Matrix4.numberOfElements())
+//        memcpy(bufferPointer, nodeModelMatrix.raw(), MemoryLayout<Float>.size*float4x4.numberOfElements())
+//        memcpy(bufferPointer + MemoryLayout<Float>.size * float4x4.numberOfElements(), projectionMatrix.raw(),  MemoryLayout<Float>.size * float4x4.numberOfElements())
         
         let uniformBuffer = bufferProvider.nextUniformsBuffer(projectionMatrix: projectionMatrix, modelViewMatrix: nodeModelMatrix,light:light)
         
@@ -104,8 +105,8 @@ class Node {
     }
     
     
-    func modelMatrix() -> Matrix4 {
-        let matrix = Matrix4()
+    func modelMatrix() -> float4x4 {
+        var matrix = float4x4()
         matrix.translate(positionX,y:positionY,z:positionZ)
         matrix.rotateAroundX(rotationX, y: rotationY, z: rotationZ)
         matrix.scale(scale, y: scale, z: scale)
